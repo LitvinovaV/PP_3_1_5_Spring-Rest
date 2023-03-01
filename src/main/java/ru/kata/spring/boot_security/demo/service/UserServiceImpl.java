@@ -1,15 +1,19 @@
 package ru.kata.spring.boot_security.demo.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.kata.spring.boot_security.demo.model.Role;
 import ru.kata.spring.boot_security.demo.model.User;
 import ru.kata.spring.boot_security.demo.repositories.UserRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,25 +67,31 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByUsername(username);
-    }
-
-    @Override
     @Transactional
-    public void updateUser(User user, Long id) {
-        User updateUser = userRepository.getById(id);
-        updateUser.setId(user.getId());
-        updateUser.setPassword(
-                (updateUser.getPassword().equals(user.getPassword())) ?
-                        user.getPassword() : bCryptPasswordEncoder.encode(user.getPassword()));
-        updateUser.setAge(user.getAge());
-        updateUser.setFirstName(user.getFirstName());
-        updateUser.setLastName(user.getLastName());
-        updateUser.setUsername(user.getUsername());
-        updateUser.setRoles(user.getRoles());
-        userRepository.save(updateUser);
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User user = userRepository.findByUsername(username);
+        List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
+        for (Role role : user.getRoles()) {
+            grantedAuthorities.add(new SimpleGrantedAuthority(role.getRole()));
+        }
+        return user;
     }
 
-}
+        @Override
+        @Transactional
+        public void updateUser (User user, Long id){
+            User updateUser = userRepository.getById(id);
+            updateUser.setId(user.getId());
+            updateUser.setPassword(
+                    (updateUser.getPassword().equals(user.getPassword())) ?
+                            user.getPassword() : bCryptPasswordEncoder.encode(user.getPassword()));
+            updateUser.setAge(user.getAge());
+            updateUser.setFirstName(user.getFirstName());
+            updateUser.setLastName(user.getLastName());
+            updateUser.setUsername(user.getUsername());
+            updateUser.setRoles(user.getRoles());
+            userRepository.save(updateUser);
+        }
+
+    }
 
